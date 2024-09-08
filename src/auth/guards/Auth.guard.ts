@@ -53,7 +53,6 @@ export class JwtAuthGuard implements CanActivate {
 
       // Attach the decoded user information to the request
       request.user = decoded;
-      console.log({ decoded })
 
       return true; // Token is valid, allow access
     } catch (error) {

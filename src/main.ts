@@ -19,9 +19,7 @@ async function bootstrap() {
   });
 
   // Register the fastify-cookie plugin
-  await app.register(fastifyCookie, {
-    secret: process.env.JWT_SECRET, // Optional cookie signing secret
-  });
+  await app.register(fastifyCookie);
 
   // Enable global validation pipe
   app.useGlobalPipes(
