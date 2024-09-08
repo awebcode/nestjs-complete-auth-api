@@ -151,6 +151,9 @@ export class AuthService {
       },
       data: {
         ...UpdateUserDto,
+        password: UpdateUserDto.password
+          ? await bcrypt.hash(UpdateUserDto.password, 10)
+          : undefined,
       },
     });
     return user;

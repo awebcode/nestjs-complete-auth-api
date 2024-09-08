@@ -29,6 +29,7 @@ import { BlogModule } from './blog/blog.module';
       provide: APP_GUARD,
       useClass: ThrottlerGuard,
     },
+    
   ],
 })
 export class AppModule {}

@@ -26,8 +26,9 @@ export class CreateUserDto {
   password: string;
   @IsOptional()
   @ApiProperty({ enum: ['Admin', 'Moderator', 'User'], example: 'User', required: false })
+  
   role?: 'Admin' | 'Moderator' | 'User';
 }
 
 export class LoginDto extends PickType(CreateUserDto, ['email', 'password']) {}
-export class UpdateUserDto  extends PartialType(OmitType(CreateUserDto, ['password'])){}
+export class UpdateUserDto  extends PartialType(CreateUserDto){}
