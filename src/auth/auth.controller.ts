@@ -4,7 +4,7 @@ import { AuthService } from './auth.service';
 import { CreateUserDto, UpdateUserDto, LoginDto } from './dto/user.dto';
 import { CustomParseIntPipe } from './pipes/params.pipe';
 
-import type { FastifyReply, FastifyRequest } from 'fastify';
+import type {Response, Request } from 'express';
 import { ApiBody, ApiParam, ApiQuery, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { JwtAuthGuard } from './guards/Auth.guard';
 import { RolesGuard } from './guards/Roles.guard';
@@ -22,14 +22,14 @@ export class AuthController {
     return this.authService.createUser(createUserDto);
   }
   @Post('login')
-  login(@Body() LoginDto: LoginDto, @Res({ passthrough: true }) res: FastifyReply) {
+  login(@Body() LoginDto: LoginDto, @Res({ passthrough: true }) res:Response) {
     return this.authService.login(LoginDto, res);
   }
 
   @UseGuards(JwtAuthGuard)
   @ApiResponse({ status: 200, description: 'Get user details.', type: CreateUserDto })
   @Get('me')
-  me(@Req() req: FastifyRequest) {
+  me(@Req() req: Request) {
     return this.authService.useDetails(req);
   }
 
@@ -70,13 +70,13 @@ export class AuthController {
   }
   @Get('logout')
   @ApiResponse({ status: 200, description: 'Logout successful.' })
-  logout(@Res({ passthrough: true }) rep: FastifyReply) {
+  logout(@Res({ passthrough: true }) rep:Response) {
     return this.authService.logout(rep);
   }
   @Get('deleteMyAccount')
   @UseGuards(JwtAuthGuard)
   @ApiResponse({ status: 200, description: 'Your account Deleted Successfully.' })
-  deleteMyAccount(@Res({ passthrough: true }) req: FastifyRequest) {
+  deleteMyAccount(@Res({ passthrough: true }) req: Request) {
     return this.authService.deleteMyAccount(req);
   }
 }

@@ -1,24 +1,26 @@
 import { ExceptionFilter, Catch, ArgumentsHost, HttpException, HttpStatus } from '@nestjs/common';
-import { FastifyReply } from 'fastify';
+import { Response } from 'express';
 
 @Catch()
 export class CustomExceptionFilter implements ExceptionFilter {
   catch(exception: any, host: ArgumentsHost) {
     const ctx = host.switchToHttp();
-    const response = ctx.getResponse<FastifyReply>(); // Use FastifyReply for Fastify
+    const response = ctx.getResponse<Response>(); // Use Response for Express
     const request = ctx.getRequest();
 
     const status = exception instanceof HttpException ? exception.getStatus() : HttpStatus.INTERNAL_SERVER_ERROR;
 
     const exceptionResponse = exception instanceof HttpException ? exception.getResponse() : { message: 'Internal server error' };
+   console.log({ exceptionResponse });
 
     const errorMessage =
       typeof exceptionResponse === 'object' && exceptionResponse['message']
         ? Array.isArray(exceptionResponse['message'])
           ? exceptionResponse['message']
-          : { message: exceptionResponse['message'].startsWith('\nInvalid `this.prisma.')?"Prisma Connection Or Network Errors":exceptionResponse['message'] }
-        : exception.message || 'Unknown error'
-
+          : {
+              message: exceptionResponse['message'].startsWith('\nInvalid `this.prisma.') ? 'Prisma Connection Or Network Errors' : exceptionResponse['message'],
+            }
+        : exception.message || 'Unknown error';
 
     const errorMessagesArray = Array.isArray(errorMessage) ? errorMessage : [errorMessage];
 
@@ -29,8 +31,7 @@ export class CustomExceptionFilter implements ExceptionFilter {
       path: request.url,
       timestamp: new Date().toISOString(),
     };
-
-    // Fastify uses reply.code() instead of response.status()
-    response.code(status).type('application/json').send(customErrorResponse); // Use .send() in Fastify
+    // For Express, use response.status().json()
+    response.status(status).json(customErrorResponse);
   }
 }

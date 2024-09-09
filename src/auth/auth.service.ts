@@ -3,9 +3,11 @@ import { CreateUserDto,LoginDto, UpdateUserDto } from './dto/user.dto';
 import { PrismaService } from '../prisma.service';
 import * as bcrypt from 'bcryptjs';
 import { JwtService } from '@nestjs/jwt';
-import { FastifyReply } from 'fastify'; // Import FastifyReply
 import { Prisma } from '@prisma/client';
-import type { FastifyRequest } from 'fastify/types/request';
+import { getCookieOptions } from 'src/config/CookieOptions';
+import { ENV } from 'src/config/Env';
+import type { Request, Response } from 'express';
+
 @Injectable()
 export class AuthService {
   constructor(
@@ -63,7 +65,7 @@ export class AuthService {
    }
   }
 
-  async login(LoginDto: LoginDto, res: FastifyReply) {
+  async login(LoginDto: LoginDto, res: Response) {
     const { email, password } = LoginDto;
     const user = await this.validateUser(email, password);
     if (!user) {
@@ -76,27 +78,20 @@ export class AuthService {
     // Generate JWT token
     const access_token = this.jwtService.sign(access_token_payload, {
       expiresIn: '1h',
-      secret: process.env.JWT_SECRET,
+      secret:ENV.jwtSecret,
     });
     const refresh_token = this.jwtService.sign(refresh_token_payload, {
       expiresIn: '7d',
-      secret: process.env.JWT_SECRET,
+      secret: ENV.refreshTokenSecret,
     });
     // Set JWT token in cookie
     // Set token in a cookie
-    res.setCookie('access_token', access_token, {
-      httpOnly: true, // Prevents client-side JS from reading the cookie
-      secure: process.env.NODE_ENV === 'production', // Ensure secure cookies in production
-      maxAge: 1000 * 60 * 60, // Set cookie expiration (1 hour in this case)
-      sameSite: 'strict',
-      path: '/',
-    })
-    res.setCookie('refresh_token', refresh_token, {
-      httpOnly: true, // Prevents client-side JS from reading the cookie
-      secure: process.env.NODE_ENV === 'production', // Ensure secure cookies in production
-      maxAge: 1000 * 60 * 60*7, // Set cookie expiration (1 hour in this case)
-      sameSite: 'strict',
-      path: '/',
+    res.cookie('access_token', access_token, {
+      ...getCookieOptions(60 * 60),
+    });
+    
+    res.cookie('refresh_token', refresh_token, {
+      ...getCookieOptions(60 * 60*7),
     });
 
     // Return token along with user information
@@ -110,6 +105,7 @@ export class AuthService {
       refresh_token: refresh_token,
     };
   }
+
   async getUserById(id: number) {
     const user = await this.prisma.user.findUnique({
       where: {
@@ -118,23 +114,28 @@ export class AuthService {
     });
     return user;
   }
+
   async getAllUsers() {
     return await this.prisma.user.findMany();
   }
-  async useDetails(req: FastifyRequest) {
+
+  async useDetails(req: Request) {
     if (!Number(req.user.userId)) {
       throw new HttpException('UserId not found', 404);
     }
+
  const user = await this.prisma.user.findUnique({
     where: {
       id: Number(req.user.userId),
     },
-  })
+ })
+    
   if (!user) {
     throw new HttpException('User not found', 404);
   }
   return user
- }
+  }
+  
   async getUserByEmail(email: string) {
     const user = await this.prisma.user.findUnique({
       where: {
@@ -158,6 +159,7 @@ export class AuthService {
     });
     return user;
   }
+
   async deleteUser(id: number) {
     const user = await this.prisma.user.delete({
       where: {
@@ -166,7 +168,8 @@ export class AuthService {
     });
     return user;
   }
-  async deleteMyAccount( req: FastifyRequest) {
+
+  async deleteMyAccount( req: Request) {
     const user = await this.prisma.user.findUnique({
       where: {
         id: Number(req.user.userId),
@@ -183,25 +186,16 @@ export class AuthService {
     });
     return {success:true,message:"Account deleted successfully"}
   }
-  async logout(reply: FastifyReply) {
-    // Remove access token cookie
-  reply.setCookie('access_token', '', {
-    path: '/',
-    httpOnly: true, // Ensures that cookie is only sent over HTTP(S), not accessible via JavaScript
-    secure: process.env.NODE_ENV === 'production', // Ensure cookies are secure in production
-    expires: new Date(0), // Expiry date in the past to delete the cookie
-    sameSite: 'strict', // Helps prevent CSRF attacks
+
+  async logout(res: Response) {
+  res.cookie('access_token', '', {
+    ...getCookieOptions(0),
   });
 
-  // Remove refresh token cookie
-  reply.setCookie('refresh_token', '', {
-    path: '/',
-    httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    expires: new Date(0),
-    sameSite: 'strict',
+  res.cookie('refresh_token', '', {
+    ...getCookieOptions(0),
   });
 
-    return { success: true, message: 'Cookies cleared successfully' };
+    return { success: true, message: 'logged out successfully' };
   }
 }
